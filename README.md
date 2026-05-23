@@ -3,7 +3,7 @@
 A self-contained, interactive guide with **15 structured prompting patterns**  
 covering the full network lifecycle — requirements through operations.
 
-**No install. No dependencies. No Claude account needed.**  
+**No install. No dependencies. No specific AI account required.**  
 Open `index.html` in any browser and it works.
 
 ---
@@ -157,4 +157,4 @@ in `index.html` accordingly.
 
 ---
 
-*Vendor-agnostic · No Claude required · Works in any browser*
+*Vendor-agnostic · No external AI account required · Works in any browser*
