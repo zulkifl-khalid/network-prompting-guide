@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Prompting Guide for Network Engineers</title>
+
+  <!-- React + Babel via CDN — no install needed -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a0e1a; color: #e2e8f0; font-family: 'DM Mono', 'Courier New', monospace; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0a0e1a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+    .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; cursor: pointer; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; letter-spacing: 0.05em; }
+    .code-block { background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 16px; font-size: 11.5px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: #94a3b8; position: relative; }
+    .tab-btn { background: none; border: none; cursor: pointer; padding: 8px 16px; font-family: inherit; font-size: 12px; letter-spacing: 0.05em; border-radius: 4px; transition: all 0.15s; }
+    .tab-btn.active { background: #1e293b; color: #f1f5f9; }
+    .tab-btn:not(.active) { color: #64748b; }
+    .tab-btn:hover:not(.active) { color: #94a3b8; }
+    .back-btn { background: none; border: 1px solid #1e293b; color: #64748b; cursor: pointer; padding: 6px 12px; border-radius: 4px; font-family: inherit; font-size: 11px; transition: all 0.15s; letter-spacing: 0.05em; }
+    .back-btn:hover { border-color: #334155; color: #94a3b8; }
+    .copy-btn { background: #1e293b; border: none; color: #64748b; cursor: pointer; padding: 4px 10px; border-radius: 4px; font-family: inherit; font-size: 10px; transition: all 0.15s; position: absolute; top: 10px; right: 10px; }
+    .copy-btn:hover { background: #334155; color: #94a3b8; }
+    .copy-btn.copied { background: #14532d; color: #4ade80; }
+    .filter-btn { background: none; border: 1px solid #1e293b; cursor: pointer; padding: 5px 12px; border-radius: 20px; font-family: inherit; font-size: 10px; letter-spacing: 0.06em; transition: all 0.15s; }
+    .filter-btn.active { border-color: #3b82f6; color: #3b82f6; background: rgba(59,130,246,0.08); }
+    .filter-btn:not(.active) { color: #475569; }
+    .filter-btn:hover:not(.active) { border-color: #334155; color: #64748b; }
+    .phase-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; }
+    .kd-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #0f172a; }
+    .kd-num { color: #3b82f6; font-size: 11px; min-width: 20px; margin-top: 2px; }
+    .kd-text { color: #94a3b8; font-size: 12px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+
+    /* ============================================================
+       PROMPTS DATA
+       ============================================================
+       TO ADD A NEW PROMPT: copy one object below, paste it at the
+       end of the array (before the closing ]), increment the id,
+       and fill in all fields. The UI rebuilds automatically.
+
+       FIELDS:
+         id          : unique integer
+         phase       : one of the keys in LIFECYCLE_COLORS below
+         title       : short name shown on the card
+         difficulty  : "Senior" | "Mixed" | "Mid-level"
+         mode        : "Chat" | "Agentic"
+         tagline     : one-line description on the card
+         why         : paragraph explaining why this pattern exists
+         dont        : the bad prompt example (plain string)
+         do          : the good prompt (plain string — use \n for newlines)
+         keyDiffs    : array of 3 short strings
+    ============================================================ */
+
+    const LIFECYCLE_COLORS = {
+      "Requirements":    "#0ea5e9",
+      "Architecture":    "#8b5cf6",
+      "Design":          "#6366f1",
+      "Implementation":  "#10b981",
+      "Config Generation":"#f59e0b",
+      "Validation":      "#ef4444",
+      "Troubleshooting": "#f97316",
+      "Security":        "#ec4899",
+      "Operations":      "#06b6d4",
+    };
+
+    const PHASE_ORDER = [
+      "Requirements","Architecture","Design","Implementation",
+      "Config Generation","Validation","Troubleshooting","Security","Operations"
+    ];
+
+    const prompts = [
+      {
+        id: 1,
+        phase: "Requirements",
+        title: "Constraint-Graph Requirements Elicitation",
+        difficulty: "Senior",
+        mode: "Chat",
+        tagline: "Map competing business and technical constraints before any design begins",
+        why: "Vague requirements are the root cause of most network redesigns. This prompt forces the AI to model hard vs. soft constraints and their dependencies — exposing conflicts before a single diagram is drawn.",
+        dont: "Gather network requirements for our new branch office rollout.",
+        do: `You are a senior network architect. I need you to elicit and structure requirements for: [PROJECT DESCRIPTION].
+
+Produce a CONSTRAINT GRAPH covering:
+
+HARD CONSTRAINTS (non-negotiable):
+- C1: Regulatory / compliance mandates (PCI-DSS, HIPAA, SOX, etc.)
+- C2: Availability SLA requirements (e.g., 99.99%)
+- C3: Security policy mandates (zero-trust, segmentation, etc.)
+- C4: Budget ceiling
+
+SOFT CONSTRAINTS (preferred):
+- C5: Vendor preference or existing contracts [depends on C4]
+- C6: Preferred protocols or platforms [depends on C1, C3]
+- C7: Migration timeline targets [depends on C2]
+
+DEPENDENCY RULES:
+- If C1 conflicts with C6 → C1 wins, flag C6 for review
+- If C2 conflicts with C4 → escalate to stakeholder before proceeding
+- C7 cannot be scheduled until C3 is fully defined
+
+CONFLICT RESOLUTION:
+- For each conflict found, output: CONFLICT | Root cause | Resolution options | Recommended path
+
+After mapping constraints, output:
+1. A numbered constraint list with dependencies shown
+2. A RISK TABLE: unresolved conflicts and their project impact
+3. A gap list: what information is still missing before design can begin`,
+        keyDiffs: [
+          "Surfaces conflicts before design begins, not after implementation",
+          "Separates hard from soft constraints so trade-offs are explicit",
+          "Produces a gap list — tells you what questions to ask stakeholders next",
+        ],
+      },
+      {
+        id: 2,
+        phase: "Architecture",
+        title: "Dual-Architecture Self-Check Prompting",
+        difficulty: "Senior",
+        mode: "Chat",
+        tagline: "Generate two competing high-level designs and let the AI arbitrate",
+        why: "Single-path design misses alternatives. Asking for two independent approaches with different trade-off profiles surfaces options the engineer may not have considered, and the arbitration step forces explicit reasoning about which fits the requirements.",
+        dont: "Design a high-availability WAN architecture for 50 branch offices connecting to two data centers.",
+        do: `Design a high-availability WAN architecture for 50 branch offices connecting to two data centers.
+
+Produce TWO independent architecture options:
+
+ARCHITECTURE A: Hub-and-spoke with MPLS underlay
+- Focus on: deterministic QoS, simplicity of operations
+- Routing: IGP at hub, static or iBGP at spokes
+
+ARCHITECTURE B: Full-mesh SD-WAN over broadband/LTE
+- Focus on: cost reduction, application-aware routing
+- Routing: SD-WAN overlay with centralized policy
+
+For EACH architecture, produce:
+1. High-level topology description (sites, nodes, links)
+2. Routing design (protocols, redistribution points, summarisation)
+3. Failure mode analysis: what breaks when a link/site/controller fails
+4. A score (0-5) against each of these criteria:
+   - Availability | Cost | Operational Complexity | Scalability | Security posture
+
+Then produce:
+ARBITRATION SECTION:
+- Which architecture scores better overall for [my stated requirements]?
+- What hybrid elements from the losing design should be incorporated?
+- What are the top 3 risks in the recommended design and mitigations?`,
+        keyDiffs: [
+          "Two independent designs are unlikely to share the same blind spots",
+          "Scoring matrix makes trade-offs visible and defensible to stakeholders",
+          "Arbitration step explicitly links design choice back to requirements",
+        ],
+      },
+      {
+        id: 3,
+        phase: "Architecture",
+        title: "Protocol Selection Rubric-Then-Design",
+        difficulty: "Mixed",
+        mode: "Chat",
+        tagline: "Define what 'good' means for your environment before choosing protocols",
+        why: "Protocol debates (OSPF vs IS-IS, BGP vs EIGRP) are endless without agreed criteria. This two-phase approach forces the team to define the rubric first, then scores candidate protocols against it — making the decision auditable and transferable.",
+        dont: "Should I use OSPF or IS-IS for my service provider core? Which is better?",
+        do: `PHASE 1 — RUBRIC GENERATION:
+You are a senior network architect. Produce a scoring rubric (0-5 per criterion) for evaluating IGP protocol selection in a [SERVICE PROVIDER / LARGE ENTERPRISE / DATA CENTER] environment.
+
+The rubric must cover:
+- Convergence speed and tuning headroom
+- Scalability (number of nodes, prefixes, areas)
+- Operational familiarity / talent availability
+- Multi-vendor interoperability
+- Traffic engineering integration (RSVP-TE, SR-TE)
+- TLV extensibility for future use cases (SRv6, FlexAlgo)
+- Failure domain isolation
+
+Output as: RUBRIC.md with each criterion defined at levels 0, 2, 4, and 5.
+
+---
+
+PHASE 2 — PROTOCOL EVALUATION:
+Using the rubric above, score the following candidates for my environment: [DESCRIBE YOUR NETWORK SCALE, VENDOR MIX, EXISTING PROTOCOLS]:
+- Candidate A: OSPF (multi-area)
+- Candidate B: IS-IS (multi-level)
+- Candidate C: Hybrid (OSPF core + IS-IS SP edge)
+
+For each candidate:
+1. Score against every rubric criterion with a one-sentence justification
+2. Identify where the candidate FAILS to meet a hard requirement
+3. Produce a self-evaluation table (criterion | score | rationale)
+
+Then recommend the best fit and describe the top 3 implementation risks.`,
+        keyDiffs: [
+          "Rubric is generated for YOUR environment, not a generic comparison",
+          "Scores are traceable — you can explain the decision to management",
+          "Reveals hidden risks before the protocol is deployed at scale",
+        ],
+      },
+      {
+        id: 4,
+        phase: "Design",
+        title: "IP Addressing & Summarisation Plan-and-Apply",
+        difficulty: "Mixed",
+        mode: "Chat",
+        tagline: "Plan the full addressing hierarchy before generating a single subnet",
+        why: "Ad-hoc IP allocation creates overlaps, wastes space, and makes route summarisation impossible. The plan-first, apply-second approach forces hierarchical thinking and produces a reversible, auditable allocation.",
+        dont: "Give me an IP addressing plan for my network. I have headquarters, 3 data centers, and 40 branches.",
+        do: `STEP 1 — PLAN ONLY (no subnets yet):
+I need an IPv4 and IPv6 dual-stack addressing hierarchy for:
+- 1 HQ campus (500 hosts, 20 VLANs)
+- 3 data centers (2000 hosts each, DMZ + server + mgmt zones)
+- 40 branch offices (avg 50 hosts, voice + data VLANs)
+- Out-of-band management network for all network devices
+- Point-to-point interconnects (WAN links)
+
+Constraints:
+- Must summarise cleanly at regional and national boundaries
+- RFC1918 for internal; document where IPv6 ULA vs GUA is used
+- Reserve 25% of each block for growth
+- No overlap with cloud VPCs: 10.200.0.0/14 is reserved
+
+Produce a NUMBERED PLAN (8 steps max). Each step must:
+- Describe the allocation tier (e.g., "Allocate /8 supernet for entire enterprise")
+- State the success criterion before moving to the next step
+- Flag any assumptions made
+
+DO NOT allocate any specific subnets yet.
+
+---
+
+STEP 2 — APPLY STEP [N] ONLY:
+Now execute step [N] of the plan.
+Output: a table with columns: Site | Purpose | Subnet | Usable Range | Hosts | Summary-to
+Include IPv4 and IPv6 side by side.`,
+        keyDiffs: [
+          "Plan review prevents discovering overlaps after 40 branches are deployed",
+          "Step-by-step execution means you can stop and validate at each tier",
+          "Growth reservation and summarisation are baked in from the start",
+        ],
+      },
+      {
+        id: 5,
+        phase: "Design",
+        title: "Failure-Mode-First Network Design",
+        difficulty: "Senior",
+        mode: "Chat",
+        tagline: "Start with what breaks — then design to survive it",
+        why: "Designing for the happy path and adding redundancy later is backwards. This prompt forces the AI to enumerate failure scenarios first, then build a design specifically engineered to tolerate each one.",
+        dont: "Design a redundant data center network using spine-leaf topology.",
+        do: `I am designing a [SPINE-LEAF / COLLAPSED CORE / ROUTED ACCESS] data center fabric for [DESCRIBE SCALE: X spines, Y leaves, Z servers].
+
+PHASE 1 — FAILURE ENUMERATION ONLY:
+List every realistic failure scenario for this topology, categorised as:
+- L1 failures: physical link, optic, port failures
+- L2 failures: spanning tree issues, MAC table overflow, VLAN misconfiguration
+- L3 failures: routing adjacency loss, route flap, black-hole, asymmetric routing
+- Control-plane failures: BGP/OSPF process crash, route reflector failure
+- Management-plane failures: out-of-band access loss, SNMP/syslog disruption
+- Correlated failures: simultaneous multi-device failure scenarios
+
+For each failure, state: Trigger | Blast radius | Detection mechanism | Current gap
+
+DO NOT design anything yet.
+
+---
+
+PHASE 2 — DESIGN TO SURVIVE EACH FAILURE:
+Using the failure list above, design the fabric with explicit mitigations:
+- For each failure class, describe the design element that addresses it
+- Call out any failure that CANNOT be mitigated within budget constraints
+- Output a DESIGN DECISION TABLE: Failure | Mitigation | Design element | Residual risk`,
+        keyDiffs: [
+          "Failure enumeration before design prevents 'I didn't think of that' surprises",
+          "Explicit residual risk table is directly usable in a risk register",
+          "Correlated failures — the ones that actually take down production — are surfaced",
+        ],
+      },
+      {
+        id: 6,
+        phase: "Config Generation",
+        title: "Diff-Only Configuration Generation",
+        difficulty: "Mixed",
+        mode: "Chat",
+        tagline: "Generate only what changes — never regenerate an entire device config",
+        why: "Asking an LLM to 'rewrite the config' on a production router risks accidentally omitting critical lines. Diff-only output is safe, reviewable, and directly applicable with patch tools.",
+        dont: "Rewrite this router config to add BGP route reflector functionality.",
+        do: `I will paste an existing router configuration. Your task is to add BGP Route Reflector functionality.
+
+You must ONLY respond with a unified diff that:
+- Adds the RR cluster-id and route-reflector-client statements
+- Adds peer groups for the new RR clients
+- Preserves ALL existing BGP neighbors, communities, and policy statements
+- Does NOT touch any IGP, interface, or MPLS configuration
+- Adds no new dependencies or features beyond what is requested
+
+Format EXACTLY as:
+\`\`\`diff
+--- before.cfg
++++ after.cfg
+@@ -[line range] @@
+ context line
+-removed line
++added line
+\`\`\`
+
+After the diff, output:
+CHANGE SUMMARY:
+- Lines added: [count]
+- Lines removed: [count]
+- Stanzas touched: [list]
+- Rollback procedure: [exact commands to undo]
+- Verification commands: [show commands to confirm the change worked]
+
+Here is the current configuration:
+[PASTE CONFIG]`,
+        keyDiffs: [
+          "Impossible to accidentally delete a crypto key or ACL in a diff-only output",
+          "Rollback procedure is generated alongside the change — not as an afterthought",
+          "Verification commands are explicit — 'tests pass' equivalent for network changes",
+        ],
+      },
+      {
+        id: 7,
+        phase: "Config Generation",
+        title: "Adversarial Config Template Validator",
+        difficulty: "Senior",
+        mode: "Chat",
+        tagline: "Generate malicious edge-case inputs BEFORE writing the config template",
+        why: "Config templates that look correct fail on edge cases: interface names with spaces, very long hostnames, unusual ASNs, IPv6 addresses in unexpected positions. Generate the hard cases first, then build the template to survive them.",
+        dont: "Write a Jinja2 template for BGP neighbour configuration. Make sure it handles edge cases.",
+        do: `You are an adversarial test data generator for network configuration templates.
+
+STEP 1 — Generate 30 test inputs LIKELY to break naive Jinja2/Python templates for a BGP neighbour configuration, including:
+- IPv6 link-local addresses as BGP neighbors
+- AS numbers at boundary values (1, 65535, 4294967295)
+- Hostnames with hyphens, dots, and maximum length (63 chars)
+- Community strings in all formats: standard, extended, large, no-export
+- Passwords containing special characters: $, !, @, #, spaces
+- Missing optional parameters (no description, no update-source)
+- Duplicate neighbor entries with conflicting parameters
+- Route-map names with spaces or special characters
+
+STEP 2 — Given this variable schema: [PASTE YOUR DATA MODEL / YAML SCHEMA]
+Write a Jinja2 template and Python validation function that:
+- Accepts only valid, sanitised inputs
+- Raises explicit errors for each invalid case found in step 1
+- Handles all 30 adversarial inputs correctly
+
+Return:
+1. The 30 adversarial test inputs (YAML format)
+2. The Jinja2 template
+3. The Python validator with test harness`,
+        keyDiffs: [
+          "Adversarial inputs reveal template gaps that happy-path testing never finds",
+          "Special characters in passwords/community strings break templates silently in production",
+          "Red-team mindset is psychologically easier — critique before you defend",
+        ],
+      },
+      {
+        id: 8,
+        phase: "Implementation",
+        title: "Repository-Aware Multi-Device Change Plan",
+        difficulty: "Senior",
+        mode: "Agentic",
+        tagline: "Plan the full multi-device change before touching a single device",
+        why: "Multi-device changes applied without a sequencing plan cause split-brain routing, temporary black-holes, or cascading adjacency drops. Plan-and-apply enforces the right sequence and keeps each step independently rollbackable.",
+        dont: "Migrate my OSPF network to IS-IS. Update all routers in the core.",
+        do: `I am performing a protocol migration on a live network. Context:
+- Network: [DESCRIBE: X core routers, Y PEs, topology type]
+- Change: Migrate IGP from OSPF to IS-IS with zero packet loss
+- Constraint: No maintenance window — must be hitless
+- Device inventory: [PASTE device list with roles]
+
+STEP 1 — PLAN ONLY (no configs):
+Analyze the device inventory and propose a numbered migration plan with AT MOST 10 steps.
+
+Each step must:
+- Target SPECIFIC devices (by role: e.g., "Step 3: PE routers — P1, P2, P3")
+- Describe EXACTLY what changes on those devices
+- State the verification criterion before proceeding to step N+1
+- Identify the rollback action if verification fails
+- Flag any step where traffic impact is possible (even briefly)
+
+Format each step as:
+STEP N | Devices | Action | Verify with | Rollback | Risk level (Low/Med/High)
+
+DO NOT generate any configuration yet.
+
+---
+
+STEP 2-N — APPLY STEP [N] ONLY:
+Generate the configuration changes for step [N].
+Constraints:
+- Unified diff format only
+- Only touch the devices and stanzas listed in step [N]
+- Include the verification show commands inline as comments`,
+        keyDiffs: [
+          "Sequencing prevents split-brain and black-hole conditions during migration",
+          "Each step has an explicit rollback — not 'undo everything'",
+          "Risk level flags let you pause before high-impact steps",
+        ],
+      },
+      {
+        id: 9,
+        phase: "Validation",
+        title: "Pre/Post Change Validation Generator",
+        difficulty: "Mixed",
+        mode: "Chat",
+        tagline: "Auto-generate the exact commands to capture before and compare after",
+        why: "Most network outages caused by changes are detectable in post-checks — but only if the right pre-change state was captured. This prompt generates a tailored, structured pre/post checklist from your specific change, not a generic template.",
+        dont: "Give me a pre/post check template for a BGP change.",
+        do: `I am making the following change to a production network:
+
+CHANGE DESCRIPTION: [PASTE YOUR CHANGE — e.g., "Adding a new BGP peer to PE-1 for customer VRF CUST-A"]
+AFFECTED DEVICES: [LIST]
+EXPECTED IMPACT: [e.g., "New BGP session will come up; no existing sessions should drop"]
+PLATFORM: [e.g., Cisco IOS-XR / Junos / EOS / Nokia SR OS — or 'vendor agnostic']
+
+Generate a PRE/POST VALIDATION PLAN:
+
+PRE-CHECKS (run before change, save output):
+For each affected device, list the exact show commands to capture:
+- Routing table state (relevant prefixes only, not full table)
+- BGP summary and specific neighbor state
+- Interface and adjacency status
+- Relevant counters (drops, errors) with timestamps
+- Any platform-specific health indicators
+
+POST-CHECKS (run after change, compare to pre):
+- Same commands as pre, plus change-specific verifications
+- Expected delta: what SHOULD change vs. what MUST NOT change
+
+DIFF CRITERIA:
+For each check, define:
+  PASS: [what a successful output looks like]
+  FAIL: [what triggers rollback]
+  WARN: [what requires investigation before proceeding]
+
+Output as a structured table AND as a copy-paste shell script skeleton with variable placeholders.`,
+        keyDiffs: [
+          "Tailored to YOUR change — not a generic BGP template applied blindly",
+          "PASS/FAIL/WARN criteria make go/no-go decisions unambiguous",
+          "Shell script skeleton can be turned into automation immediately",
+        ],
+      },
+      {
+        id: 10,
+        phase: "Validation",
+        title: "Dual-Path Reachability Self-Check",
+        difficulty: "Senior",
+        mode: "Agentic",
+        tagline: "Verify reachability two independent ways — flag when they disagree",
+        why: "A single ping passing proves little. Verifying via both the control plane and data plane and checking they agree catches issues like recursive routing loops, RPF failures, and ECMP asymmetry that a ping alone will never surface.",
+        dont: "Verify my new route is working after the BGP change.",
+        do: `Verify end-to-end reachability for prefix [X.X.X.X/Y] after the recent routing change using TWO independent methods:
+
+METHOD A — Control-Plane Analysis:
+On each device in the expected path [LIST DEVICES]:
+1. Confirm the prefix is in the routing table with correct next-hop
+2. Confirm the recursive resolution of the next-hop is correct
+3. Confirm no ECMP asymmetry exists between ingress and egress paths
+4. Confirm RPF check passes (if multicast or uRPF is enabled)
+Commands to run: [list exact show commands per platform]
+
+METHOD B — Data-Plane Verification:
+1. Traceroute from SOURCE to DESTINATION — verify each hop matches expected path
+2. Run bidirectional traceroute (source and dest) — confirm symmetry
+3. Check interface error counters on every hop
+4. Verify QoS markings are preserved end-to-end (if applicable)
+
+SELF-CHECK:
+Compare Method A and Method B results:
+- If both agree → PASS
+- If control plane shows route but traceroute diverges → FLAG: possible ECMP asymmetry or policy mismatch
+- If control plane shows route but data plane drops → FLAG: possible ACL, uRPF, or hardware issue
+- If both disagree → ESCALATE
+
+Output: VERIFICATION REPORT with per-device results, method comparison, and final PASS/WARN/FAIL verdict.`,
+        keyDiffs: [
+          "Two independent methods are unlikely to share the same blind spot",
+          "Control/data-plane divergence is the hardest bug class to catch — this surfaces it",
+          "Structured verdict replaces 'it looks OK' with evidence-backed sign-off",
+        ],
+      },
+      {
+        id: 11,
+        phase: "Troubleshooting",
+        title: "OSI-Layer Failure-First Troubleshooting",
+        difficulty: "Mixed",
+        mode: "Chat",
+        tagline: "Provide symptoms and logs — get a structured, layer-by-layer diagnostic plan",
+        why: "Ad-hoc troubleshooting wastes time and can worsen the incident. This prompt structures the AI as a methodical senior engineer who works from evidence, eliminates layers systematically, and produces a hypothesis tree rather than guessing.",
+        dont: "My BGP session keeps flapping between PE1 and PE2. How do I fix it?",
+        do: `I am troubleshooting a network fault. Here is what I know:
+
+SYMPTOM: [DESCRIBE — e.g., "BGP session between PE1 and PE2 flaps every 4-6 minutes, holddown timer expiry seen in logs"]
+AFFECTED SERVICES: [e.g., "Customer VPN CUST-A unreachable for ~30 seconds per flap"]
+WHAT CHANGED RECENTLY: [e.g., "IOS-XR upgrade on PE1 last Tuesday"]
+LOG EVIDENCE: [PASTE relevant syslog / show output]
+
+Apply a structured OSI-layer troubleshooting methodology:
+
+LAYER 1-2 CHECKS:
+- What physical/datalink evidence would confirm or eliminate this layer?
+- What show commands capture this evidence?
+
+LAYER 3 CHECKS:
+- What IP/routing evidence would confirm or eliminate this layer?
+- Check: MTU mismatch, interface resets, hold-timer values, BFD timers
+
+LAYER 4-7 CHECKS (control-plane):
+- BGP keepalive interval vs hold-time ratio
+- CPU spikes during flap window
+- Memory pressure on BGP process
+
+HYPOTHESIS TREE:
+Based on the evidence provided, rank hypotheses from most to least likely:
+H1: [hypothesis] | Evidence for | Evidence against | Next diagnostic step
+H2: ...
+H3: ...
+
+For the MOST LIKELY hypothesis:
+- Give the exact commands to confirm it
+- Give the exact fix (as a diff)
+- Give the rollback if the fix makes things worse
+- Give the verification commands to confirm resolution
+
+DO NOT suggest changes until a hypothesis is confirmed by evidence.`,
+        keyDiffs: [
+          "Systematic layer elimination prevents fixing the wrong thing and worsening the outage",
+          "Hypothesis tree makes reasoning transparent and transferable to the next engineer",
+          "'No changes until confirmed' prevents the classic 'I tried something and now it's worse'",
+        ],
+      },
+      {
+        id: 12,
+        phase: "Troubleshooting",
+        title: "Protocol State-Machine Simulation",
+        difficulty: "Senior",
+        mode: "Chat",
+        tagline: "Simulate the control-plane exchange to understand WHY a protocol failed",
+        why: "Some bugs are impossible to reproduce in production. Simulating the protocol state machine exchange step-by-step shows exactly where the divergence occurs — before a single packet is captured in a lab.",
+        dont: "My OSPF adjacency is stuck in EXSTART. What's wrong?",
+        do: `Simulate an OSPF adjacency formation between two routers where the adjacency gets STUCK IN EXSTART state.
+
+ENVIRONMENT:
+- Router A: [PLATFORM, interface IP, MTU, OSPF parameters if known]
+- Router B: [PLATFORM, interface IP, MTU, OSPF parameters if known]
+- Known difference: [e.g., "Router A has ip ospf mtu-ignore configured; Router B does not"]
+
+Simulate the full OSPF neighbor state machine exchange:
+1. INIT → 2-WAY → EXSTART → EXCHANGE → LOADING → FULL
+
+For each state transition, show:
+STATE: [current state]
+Router A → Router B: [exact packet type and key fields]
+Router B → Router A: [response]
+DECISION POINT: [what each router checks and decides]
+RESULT: [transition to next state OR reason for failure]
+
+When the simulation REACHES THE STUCK POINT:
+- Show exactly which field causes the mismatch
+- Show the exact syslog message each router generates
+- Show what each router's "show ospf neighbor" output looks like at this moment
+
+Then:
+1. Fix A: the correct configuration change to resolve it (as a diff)
+2. Fix B: an alternative fix with different trade-offs
+3. Verification: show what the completed adjacency looks like after the fix`,
+        keyDiffs: [
+          "State machine simulation shows WHERE the failure occurs, not just THAT it failed",
+          "Concrete packet fields make the diagnosis unambiguous (no more 'check MTU')",
+          "Two fix options with different trade-offs — you choose based on your policy",
+        ],
+      },
+      {
+        id: 13,
+        phase: "Security",
+        title: "Security Posture Review with Constraint Graph",
+        difficulty: "Senior",
+        mode: "Chat",
+        tagline: "Audit a running config against a structured security constraint model",
+        why: "Security reviews that just say 'check for weak passwords' miss systemic issues. Mapping configs to a constraint graph exposes gaps structurally and produces a prioritised remediation list with compliance mapping.",
+        dont: "Review this router config for security issues.",
+        do: `You are a network security architect performing a security posture review.
+
+I will paste a device configuration. Review it against this SECURITY CONSTRAINT GRAPH:
+
+HARD CONSTRAINTS (critical — any violation = CRITICAL finding):
+- C1: No plaintext credentials (enable password, SNMP v1/v2 community strings)
+- C2: Management plane restricted to OOB network only (no inband Telnet/HTTP)
+- C3: Control plane protected (CoPP / LPTS policy present)
+- C4: BGP MD5 / TCP-AO authentication on all eBGP sessions
+- C5: No default route redistributed into IGP without explicit policy
+
+SOFT CONSTRAINTS (important — violation = HIGH finding):
+- C6: SSH v2 only, strong ciphers, no weak MACs [depends on C2]
+- C7: NTP authenticated [depends on C3]
+- C8: Logging to centralised syslog with source-interface set [depends on C2]
+- C9: SNMP v3 with AuthPriv [depends on C1]
+
+COMPLIANCE MAPPING:
+- Map each finding to: CIS Benchmark | NIST SP 800-41 | relevant RFC if applicable
+
+DEPENDENCY RULES:
+- C6 violation compounds C2 — flag as CRITICAL if both violated together
+- C9 violation while C1 is violated = automatic escalation to CRITICAL
+
+For each finding:
+FINDING-[N] | Severity | Config line that violates it | Constraint violated | Compliance ref | Recommended fix (as diff) | Effort to fix (Low/Med/High)
+
+Output:
+1. Executive summary (3 sentences, risk level: Critical/High/Medium/Low)
+2. Full findings table
+3. Prioritised remediation plan — order by risk reduction per effort unit
+
+Here is the configuration:
+[PASTE CONFIG]`,
+        keyDiffs: [
+          "Constraint graph prevents missing systemic issues by reviewing in isolation",
+          "Compounding violations (C2 + C6) escalate correctly — not assessed independently",
+          "Compliance mapping makes findings actionable in audit conversations",
+        ],
+      },
+      {
+        id: 14,
+        phase: "Operations",
+        title: "Reversible Network Migration Prompting",
+        difficulty: "Senior",
+        mode: "Chat",
+        tagline: "Always generate the forward migration AND the rollback together",
+        why: "Migrations planned without an explicit rollback are irreversible in a crisis. Demanding forward + backward migration simultaneously forces the AI to consider idempotency, state preservation, and recovery — not just the happy path.",
+        dont: "Migrate my customer's L3 VPN from OSPF PE-CE routing to BGP PE-CE routing.",
+        do: `I am migrating a customer VPN from OSPF PE-CE to BGP PE-CE routing on [PLATFORM].
+
+Current state:
+- PE router running OSPF PE-CE in VRF CUST-A
+- Customer CE running OSPF area 0 toward PE
+- Customer prefixes: [LIST]
+
+Target state:
+- PE running eBGP PE-CE in VRF CUST-A, AS [X]
+- Customer CE running eBGP toward PE
+- Zero packet loss during transition (dual-stack migration window)
+
+Produce:
+
+1) FORWARD MIGRATION (CLI / config diff):
+- Stage 1: Add BGP PE-CE without removing OSPF (both run simultaneously)
+- Stage 2: Verify BGP is exchanging correct prefixes (verification commands)
+- Stage 3: Remove OSPF PE-CE (only after Stage 2 verified)
+
+2) BACKWARD MIGRATION (rollback procedure):
+- Exact commands to fully restore OSPF PE-CE state
+- Idempotency check: can this rollback be run safely if partially applied?
+- Data preservation: confirm no customer prefixes are lost during rollback
+
+3) TRANSITION CODE SNIPPET:
+A Python/Netmiko skeleton showing how to apply stage 1, verify, apply stage 2, verify, and trigger rollback automatically if any verification step fails.
+
+Focus on reversibility, idempotency, and zero packet loss.`,
+        keyDiffs: [
+          "Rollback is planned before the change, not invented during a 2am crisis",
+          "Dual-stack transition window eliminates the binary cut-over risk",
+          "Idempotency check ensures rollback is safe even if partially applied",
+        ],
+      },
+      {
+        id: 15,
+        phase: "Operations",
+        title: "Intent-to-Runbook Documentation Generator",
+        difficulty: "Mixed",
+        mode: "Chat",
+        tagline: "Convert a completed design or config into a living operational runbook",
+        why: "Designs documented only in Visio diagrams are forgotten within months. This prompt generates a structured, testable runbook directly from the implemented configuration — with day-2 procedures, alert responses, and escalation paths built in.",
+        dont: "Write documentation for my BGP setup.",
+        do: `You are a senior network engineer. Convert the following implemented network design into an operational runbook.
+
+DESIGN CONTEXT:
+- Technology: [e.g., BGP route reflector cluster with 2 RRs and 40 clients]
+- Environment: [Production / Lab]
+- Platform(s): [list]
+- SLA: [e.g., 99.95% availability, 50ms max restoration time]
+
+INPUT: [PASTE your design notes, configs, or architecture description]
+
+Produce a RUNBOOK with these sections:
+
+1. DESIGN INTENT (2 paragraphs)
+   - What problem this design solves
+   - Key design decisions and why they were made
+
+2. TOPOLOGY SUMMARY
+   - Node roles and responsibilities (table format)
+   - Key IP addresses and identifiers (loopbacks, cluster-ids, AS numbers)
+
+3. DAY-2 OPERATIONAL PROCEDURES
+   For each procedure: trigger | pre-checks | steps | verification | rollback
+   - Add a new BGP client
+   - Remove a BGP client gracefully
+   - Failover to secondary RR
+   - Planned maintenance on an RR
+
+4. ALERT RESPONSE PLAYBOOK
+   For each alert: alert name | likely cause | first 3 diagnostic commands | escalation trigger
+   - BGP session down
+   - Prefix count anomaly (too many / too few prefixes)
+   - RR cluster unreachable
+
+5. HEALTH BASELINE
+   - Commands to capture a known-good baseline
+   - Metrics that should be monitored continuously
+   - Threshold values that trigger review
+
+6. KNOWN LIMITATIONS & TECH DEBT
+   - Current design gaps with severity and recommended resolution timeline`,
+        keyDiffs: [
+          "Design intent section preserves WHY — lost in 100% of config-only documentation",
+          "Alert playbook bridges monitoring to human action — no interpretation needed",
+          "Known limitations section is honest about tech debt, preventing future surprises",
+        ],
+      },
+
+      /* ── ADD NEW PROMPTS BELOW THIS LINE ─────────────────────────────────
+         Copy the block above, paste here, increment the id, fill in fields.
+         The UI will automatically pick up new entries.
+      ─────────────────────────────────────────────────────────────────── */
+
+    ]; // END OF PROMPTS ARRAY
+
+
+    /* ============================================================
+       APP — no edits needed below this line
+    ============================================================ */
+
+    const { useState } = React;
+
+    function App() {
+      const [selected, setSelected] = useState(null);
+      const [filter, setFilter]     = useState("All");
+      const [copied, setCopied]     = useState(null);
+
+      const phases   = ["All", ...PHASE_ORDER];
+      const filtered = filter === "All" ? prompts : prompts.filter(p => p.phase === filter);
+      const selP     = prompts.find(p => p.id === selected);
+
+      const copy = (p, type) => {
+        navigator.clipboard.writeText(type === "do" ? p.do : p.dont);
+        setCopied(`${p.id}-${type}`);
+        setTimeout(() => setCopied(null), 2000);
+      };
+
+      return (
+        <div style={{ fontFamily:"'DM Mono','Courier New',monospace", background:"#0a0e1a", minHeight:"100vh", color:"#e2e8f0" }}>
+
+          {/* HEADER */}
+          <div style={{ background:"#060b14", borderBottom:"1px solid #0f172a", padding:"28px 32px 24px" }}>
+            <div style={{ maxWidth:1100, margin:"0 auto" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:8 }}>
+                <span style={{ background:"#1e293b", padding:"3px 10px", borderRadius:4, fontSize:10, letterSpacing:"0.12em", color:"#475569", fontWeight:500 }}>GUIDE</span>
+                <span style={{ color:"#1e293b", fontSize:10 }}>///</span>
+                <span style={{ fontSize:10, color:"#334155", letterSpacing:"0.08em" }}>ADVANCED PROMPTING · NETWORK ENGINEERING</span>
+              </div>
+              <h1 style={{ fontFamily:"'Syne',sans-serif", fontSize:28, fontWeight:800, letterSpacing:"-0.02em", color:"#f1f5f9", marginBottom:8 }}>
+                Advanced Prompting Guide<br/>
+                <span style={{ color:"#3b82f6" }}>for Network Engineers</span>
+              </h1>
+              <p style={{ fontSize:12, color:"#475569", lineHeight:1.7, maxWidth:580 }}>
+                {prompts.length} structured prompting patterns covering the full network lifecycle — from requirements through operations.
+                Vendor-agnostic. Drop-in ready. Built for production environments.
+              </p>
+              <div style={{ display:"flex", gap:20, marginTop:16 }}>
+                {[[prompts.length, "Prompts"], [PHASE_ORDER.length, "Lifecycle phases"], ["100%", "Vendor agnostic"]].map(([n,l]) => (
+                  <div key={l}>
+                    <div style={{ fontFamily:"'Syne',sans-serif", fontSize:20, fontWeight:700, color:"#3b82f6" }}>{n}</div>
+                    <div style={{ fontSize:10, color:"#334155", letterSpacing:"0.08em" }}>{l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {selP ? (
+            /* DETAIL VIEW */
+            <div style={{ maxWidth:900, margin:"0 auto", padding:"28px 24px" }}>
+              <button className="back-btn" onClick={() => setSelected(null)}>← BACK TO ALL PROMPTS</button>
+              <div style={{ marginTop:24 }}>
+                <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap", alignItems:"center" }}>
+                  <span className="phase-dot" style={{ backgroundColor: LIFECYCLE_COLORS[selP.phase] || "#64748b" }}></span>
+                  <span style={{ fontSize:11, color: LIFECYCLE_COLORS[selP.phase] || "#64748b", letterSpacing:"0.08em", fontWeight:500 }}>{selP.phase.toUpperCase()}</span>
+                  <span style={{ color:"#1e293b" }}>·</span>
+                  <span className="pill" style={{ background:"#1e293b", color:"#64748b" }}>
+                    {selP.difficulty === "Senior" ? "⬡" : selP.difficulty === "Mixed" ? "◈" : "◻"} {selP.difficulty}
+                  </span>
+                  <span className="pill" style={{ background: selP.mode === "Agentic" ? "rgba(139,92,246,0.15)" : "rgba(16,185,129,0.12)", color: selP.mode === "Agentic" ? "#8b5cf6" : "#10b981" }}>
+                    {selP.mode === "Agentic" ? "⚡" : "💬"} {selP.mode}
+                  </span>
+                  <span style={{ marginLeft:"auto", fontFamily:"'Syne',sans-serif", fontSize:22, color:"#1e293b", fontWeight:700 }}>#{String(selP.id).padStart(2,"0")}</span>
+                </div>
+                <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:22, fontWeight:700, color:"#f1f5f9", marginBottom:8 }}>{selP.title}</h2>
+                <p style={{ fontSize:13, color:"#64748b", marginBottom:24, lineHeight:1.6 }}>{selP.tagline}</p>
+
+                <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderLeft:"3px solid #3b82f6", borderRadius:"0 6px 6px 0", padding:"14px 18px", marginBottom:24 }}>
+                  <div style={{ fontSize:10, color:"#3b82f6", letterSpacing:"0.1em", marginBottom:6 }}>WHY THIS PATTERN</div>
+                  <p style={{ fontSize:12, color:"#94a3b8", lineHeight:1.7 }}>{selP.why}</p>
+                </div>
+
+                <div style={{ marginBottom:24 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+                    <span style={{ width:18, height:18, borderRadius:"50%", background:"rgba(239,68,68,0.15)", border:"1px solid rgba(239,68,68,0.3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, color:"#ef4444" }}>✕</span>
+                    <span style={{ fontSize:11, color:"#ef4444", letterSpacing:"0.08em" }}>DON'T</span>
+                  </div>
+                  <div className="code-block" style={{ borderColor:"rgba(239,68,68,0.15)" }}>
+                    <button className={`copy-btn${copied===`${selP.id}-dont`?" copied":""}`} onClick={() => copy(selP,"dont")}>
+                      {copied===`${selP.id}-dont` ? "✓ copied" : "copy"}
+                    </button>
+                    {selP.dont}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom:28 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+                    <span style={{ width:18, height:18, borderRadius:"50%", background:"rgba(74,222,128,0.12)", border:"1px solid rgba(74,222,128,0.3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, color:"#4ade80" }}>✓</span>
+                    <span style={{ fontSize:11, color:"#4ade80", letterSpacing:"0.08em" }}>DO</span>
+                  </div>
+                  <div className="code-block" style={{ borderColor:"rgba(74,222,128,0.15)" }}>
+                    <button className={`copy-btn${copied===`${selP.id}-do`?" copied":""}`} onClick={() => copy(selP,"do")}>
+                      {copied===`${selP.id}-do` ? "✓ copied" : "copy"}
+                    </button>
+                    {selP.do}
+                  </div>
+                </div>
+
+                <div style={{ background:"#0a0e1a", border:"1px solid #0f172a", borderRadius:6, padding:"14px 18px" }}>
+                  <div style={{ fontSize:10, color:"#475569", letterSpacing:"0.1em", marginBottom:8 }}>KEY DIFFERENCES</div>
+                  {selP.keyDiffs.map((kd,i) => (
+                    <div key={i} className="kd-item" style={{ borderBottom: i===selP.keyDiffs.length-1 ? "none" : undefined }}>
+                      <span className="kd-num">{String(i+1).padStart(2,"0")}</span>
+                      <span className="kd-text">{kd}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+          ) : (
+            /* LIST VIEW */
+            <div style={{ maxWidth:1100, margin:"0 auto", padding:"28px 24px" }}>
+
+              {/* Lifecycle banner */}
+              <div style={{ display:"flex", gap:0, marginBottom:24, overflowX:"auto", paddingBottom:4 }}>
+                {PHASE_ORDER.map((ph,i) => (
+                  <div key={ph} style={{ display:"flex", alignItems:"center" }}>
+                    <div style={{ padding:"5px 12px", background:"#0f172a", border:"1px solid #1e293b",
+                      borderRadius: i===0?"4px 0 0 4px":i===PHASE_ORDER.length-1?"0 4px 4px 0":0,
+                      borderLeft: i>0 ? "none" : undefined,
+                      fontSize:10, color: LIFECYCLE_COLORS[ph]||"#64748b",
+                      letterSpacing:"0.06em", whiteSpace:"nowrap",
+                      display:"flex", alignItems:"center", gap:6 }}>
+                      <span style={{ width:6, height:6, borderRadius:"50%", background:LIFECYCLE_COLORS[ph]||"#64748b", display:"inline-block" }}></span>
+                      {ph.toUpperCase()}
+                    </div>
+                    {i < PHASE_ORDER.length-1 && <div style={{ color:"#1e293b", fontSize:12 }}>›</div>}
+                  </div>
+                ))}
+              </div>
+
+              {/* Filter pills */}
+              <div style={{ display:"flex", gap:6, marginBottom:24, flexWrap:"wrap" }}>
+                {phases.map(ph => (
+                  <button key={ph} className={`filter-btn${filter===ph?" active":""}`} onClick={() => setFilter(ph)}>
+                    {ph==="All" ? "ALL PHASES" : ph.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+
+              {/* Cards */}
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:12 }}>
+                {filtered.map(p => (
+                  <div key={p.id} className="card-hover" onClick={() => setSelected(p.id)}
+                    style={{ background:"#0d1421", border:"1px solid #1e293b", borderRadius:8, padding:"18px 20px",
+                      borderTop:`2px solid ${LIFECYCLE_COLORS[p.phase]||"#334155"}` }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
+                      <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                        <span className="pill" style={{ background:"#0f172a", color:"#475569" }}>
+                          {p.difficulty==="Senior"?"⬡":p.difficulty==="Mixed"?"◈":"◻"} {p.difficulty}
+                        </span>
+                        <span className="pill" style={{ background:p.mode==="Agentic"?"rgba(139,92,246,0.12)":"rgba(16,185,129,0.1)", color:p.mode==="Agentic"?"#8b5cf6":"#10b981" }}>
+                          {p.mode==="Agentic"?"⚡":"💬"} {p.mode}
+                        </span>
+                      </div>
+                      <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, color:"#1e293b", fontWeight:700 }}>#{String(p.id).padStart(2,"0")}</span>
+                    </div>
+                    <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
+                      <span className="phase-dot" style={{ backgroundColor:LIFECYCLE_COLORS[p.phase]||"#64748b" }}></span>
+                      <span style={{ fontSize:10, color:LIFECYCLE_COLORS[p.phase]||"#64748b", letterSpacing:"0.07em" }}>{p.phase.toUpperCase()}</span>
+                    </div>
+                    <h3 style={{ fontFamily:"'Syne',sans-serif", fontSize:14, fontWeight:700, color:"#e2e8f0", marginBottom:6, lineHeight:1.3 }}>{p.title}</h3>
+                    <p style={{ fontSize:11, color:"#475569", lineHeight:1.6 }}>{p.tagline}</p>
+                    <div style={{ marginTop:14, paddingTop:12, borderTop:"1px solid #0f172a", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <span style={{ fontSize:10, color:"#334155" }}>View pattern →</span>
+                      <div style={{ display:"flex", gap:3 }}>
+                        {[...Array(3)].map((_,i) => (
+                          <div key={i} style={{ width:4, height:4, borderRadius:"50%", background:i===0?LIFECYCLE_COLORS[p.phase]:"#1e293b" }}></div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div style={{ marginTop:40, padding:"16px 20px", background:"#0d1421", border:"1px solid #1e293b", borderRadius:6, display:"flex", gap:12, alignItems:"flex-start" }}>
+                <span style={{ color:"#3b82f6", fontSize:16, flexShrink:0 }}>ℹ</span>
+                <div style={{ fontSize:11, color:"#64748b", lineHeight:1.7 }}>
+                  <strong style={{ color:"#94a3b8" }}>Usage: </strong>
+                  Replace all <span style={{ color:"#f59e0b" }}>[BRACKETED PLACEHOLDERS]</span> with your actual values before submitting.
+                  Prompts marked <span style={{ color:"#8b5cf6" }}>⚡ Agentic</span> assume tool access (show command execution, config retrieval).
+                  All prompts are vendor-agnostic — append your platform name for vendor-specific command syntax.
+                  · <strong style={{ color:"#94a3b8" }}>To add prompts:</strong> open <span style={{ color:"#f59e0b" }}>index.html</span> and follow the comments in the PROMPTS DATA section.
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
