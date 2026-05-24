@@ -13,31 +13,85 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0a0e1a; color: #e2e8f0; font-family: 'DM Mono', 'Courier New', monospace; }
+
+    /* ── THEME TOKENS ───────────────────────────────────────────────
+       All colours flow from these two rule-sets.
+       Dark mode is the default; .light overrides every token.
+    ─────────────────────────────────────────────────────────────── */
+    :root {
+      --bg-page:        #0a0e1a;
+      --bg-header:      #060b14;
+      --bg-card:        #0d1421;
+      --bg-sunken:      #0f172a;
+      --bg-code:        #0f172a;
+      --bg-footer:      #0d1421;
+      --bg-pill:        #0f172a;
+      --bg-copy-btn:    #1e293b;
+      --bg-copy-hover:  #334155;
+      --border-main:    #1e293b;
+      --border-deep:    #0f172a;
+      --border-divider: #334155;
+      --text-primary:   #f1f5f9;
+      --text-body:      #e2e8f0;
+      --text-muted:     #94a3b8;
+      --text-faint:     #64748b;
+      --text-dimmer:    #475569;
+      --text-dimmest:   #334155;
+      --text-label:     #475569;
+      --scrollbar-thumb:#334155;
+      --shadow-hover:   rgba(0,0,0,0.4);
+      --accent:         #3b82f6;
+    }
+    .light {
+      --bg-page:        #f8fafc;
+      --bg-header:      #ffffff;
+      --bg-card:        #ffffff;
+      --bg-sunken:      #f1f5f9;
+      --bg-code:        #f1f5f9;
+      --bg-footer:      #ffffff;
+      --bg-pill:        #e2e8f0;
+      --bg-copy-btn:    #e2e8f0;
+      --bg-copy-hover:  #cbd5e1;
+      --border-main:    #e2e8f0;
+      --border-deep:    #e2e8f0;
+      --border-divider: #cbd5e1;
+      --text-primary:   #0f172a;
+      --text-body:      #1e293b;
+      --text-muted:     #334155;
+      --text-faint:     #475569;
+      --text-dimmer:    #64748b;
+      --text-dimmest:   #94a3b8;
+      --text-label:     #64748b;
+      --scrollbar-thumb:#cbd5e1;
+      --shadow-hover:   rgba(0,0,0,0.1);
+      --accent:         #2563eb;
+    }
+
+    body { background: var(--bg-page); color: var(--text-body); font-family: 'DM Mono', 'Courier New', monospace; transition: background 0.2s, color 0.2s; }
     ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: #0a0e1a; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+    ::-webkit-scrollbar-track { background: var(--bg-page); }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 2px; }
     .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; cursor: pointer; }
-    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 4px 24px var(--shadow-hover); }
     .pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; letter-spacing: 0.05em; }
-    .code-block { background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 16px; font-size: 11.5px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: #94a3b8; position: relative; }
-    .tab-btn { background: none; border: none; cursor: pointer; padding: 8px 16px; font-family: inherit; font-size: 12px; letter-spacing: 0.05em; border-radius: 4px; transition: all 0.15s; }
-    .tab-btn.active { background: #1e293b; color: #f1f5f9; }
-    .tab-btn:not(.active) { color: #64748b; }
-    .tab-btn:hover:not(.active) { color: #94a3b8; }
-    .back-btn { background: none; border: 1px solid #1e293b; color: #64748b; cursor: pointer; padding: 6px 12px; border-radius: 4px; font-family: inherit; font-size: 11px; transition: all 0.15s; letter-spacing: 0.05em; }
-    .back-btn:hover { border-color: #334155; color: #94a3b8; }
-    .copy-btn { background: #1e293b; border: none; color: #64748b; cursor: pointer; padding: 4px 10px; border-radius: 4px; font-family: inherit; font-size: 10px; transition: all 0.15s; position: absolute; top: 10px; right: 10px; }
-    .copy-btn:hover { background: #334155; color: #94a3b8; }
+    .code-block { background: var(--bg-code); border: 1px solid var(--border-main); border-radius: 6px; padding: 16px; font-size: 11.5px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: var(--text-muted); position: relative; }
+    .back-btn { background: none; border: 1px solid var(--border-main); color: var(--text-faint); cursor: pointer; padding: 6px 12px; border-radius: 4px; font-family: inherit; font-size: 11px; transition: all 0.15s; letter-spacing: 0.05em; }
+    .back-btn:hover { border-color: var(--border-divider); color: var(--text-muted); }
+    .copy-btn { background: var(--bg-copy-btn); border: none; color: var(--text-faint); cursor: pointer; padding: 4px 10px; border-radius: 4px; font-family: inherit; font-size: 10px; transition: all 0.15s; position: absolute; top: 10px; right: 10px; }
+    .copy-btn:hover { background: var(--bg-copy-hover); color: var(--text-muted); }
     .copy-btn.copied { background: #14532d; color: #4ade80; }
-    .filter-btn { background: none; border: 1px solid #1e293b; cursor: pointer; padding: 5px 12px; border-radius: 20px; font-family: inherit; font-size: 10px; letter-spacing: 0.06em; transition: all 0.15s; }
-    .filter-btn.active { border-color: #3b82f6; color: #3b82f6; background: rgba(59,130,246,0.08); }
-    .filter-btn:not(.active) { color: #475569; }
-    .filter-btn:hover:not(.active) { border-color: #334155; color: #64748b; }
+    .filter-btn { background: none; border: 1px solid var(--border-main); cursor: pointer; padding: 5px 12px; border-radius: 20px; font-family: inherit; font-size: 10px; letter-spacing: 0.06em; transition: all 0.15s; }
+    .filter-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.08); }
+    .filter-btn:not(.active) { color: var(--text-dimmer); }
+    .filter-btn:hover:not(.active) { border-color: var(--border-divider); color: var(--text-faint); }
     .phase-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; }
-    .kd-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #0f172a; }
-    .kd-num { color: #3b82f6; font-size: 11px; min-width: 20px; margin-top: 2px; }
-    .kd-text { color: #94a3b8; font-size: 12px; line-height: 1.6; }
+    .kd-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border-deep); }
+    .kd-num { color: var(--accent); font-size: 11px; min-width: 20px; margin-top: 2px; }
+    .kd-text { color: var(--text-muted); font-size: 12px; line-height: 1.6; }
+
+    /* ── THEME TOGGLE BUTTON ── */
+    .theme-toggle { background: var(--bg-pill); border: 1px solid var(--border-main); color: var(--text-faint); cursor: pointer; padding: 5px 12px; border-radius: 20px; font-family: inherit; font-size: 11px; letter-spacing: 0.05em; transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
+    .theme-toggle:hover { border-color: var(--border-divider); color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -750,6 +804,7 @@ Produce a RUNBOOK with these sections:
       const [selected, setSelected] = useState(null);
       const [filter, setFilter]     = useState("All");
       const [copied, setCopied]     = useState(null);
+      const [dark, setDark]         = useState(false);
 
       const phases   = ["All", ...PHASE_ORDER];
       const filtered = filter === "All" ? prompts : prompts.filter(p => p.phase === filter);
@@ -762,29 +817,35 @@ Produce a RUNBOOK with these sections:
       };
 
       return (
-        <div style={{ fontFamily:"'DM Mono','Courier New',monospace", background:"#0a0e1a", minHeight:"100vh", color:"#e2e8f0" }}>
+        <div className={dark ? "" : "light"} style={{ fontFamily:"'DM Mono','Courier New',monospace", background:"var(--bg-page)", minHeight:"100vh", color:"var(--text-body)" }}>
 
           {/* HEADER */}
-          <div style={{ background:"#060b14", borderBottom:"1px solid #0f172a", padding:"28px 32px 24px" }}>
+          <div style={{ background:"var(--bg-header)", borderBottom:"1px solid var(--border-deep)", padding:"28px 32px 24px" }}>
             <div style={{ maxWidth:1100, margin:"0 auto" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:8 }}>
-                <span style={{ background:"#1e293b", padding:"3px 10px", borderRadius:4, fontSize:10, letterSpacing:"0.12em", color:"#475569", fontWeight:500 }}>GUIDE</span>
-                <span style={{ color:"#1e293b", fontSize:10 }}>///</span>
-                <span style={{ fontSize:10, color:"#334155", letterSpacing:"0.08em" }}>ADVANCED PROMPTING · NETWORK ENGINEERING</span>
+              <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:8 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                  <span style={{ background:"var(--bg-pill)", padding:"3px 10px", borderRadius:4, fontSize:10, letterSpacing:"0.12em", color:"var(--text-label)", fontWeight:500 }}>GUIDE</span>
+                  <span style={{ color:"var(--border-main)", fontSize:10 }}>///</span>
+                  <span style={{ fontSize:10, color:"var(--text-dimmest)", letterSpacing:"0.08em" }}>ADVANCED PROMPTING · NETWORK ENGINEERING</span>
+                </div>
+                {/* THEME TOGGLE */}
+                <button className="theme-toggle" onClick={() => setDark(!dark)} title="Toggle light/dark mode">
+                  {dark ? "☀ Light" : "☾ Dark"}
+                </button>
               </div>
-              <h1 style={{ fontFamily:"'Syne',sans-serif", fontSize:28, fontWeight:800, letterSpacing:"-0.02em", color:"#f1f5f9", marginBottom:8 }}>
+              <h1 style={{ fontFamily:"'Syne',sans-serif", fontSize:28, fontWeight:800, letterSpacing:"-0.02em", color:"var(--text-primary)", marginBottom:8 }}>
                 Advanced Prompting Guide<br/>
-                <span style={{ color:"#3b82f6" }}>for Network Engineers</span>
+                <span style={{ color:"var(--accent)" }}>for Network Engineers</span>
               </h1>
-              <p style={{ fontSize:12, color:"#475569", lineHeight:1.7, maxWidth:580 }}>
+              <p style={{ fontSize:12, color:"var(--text-dimmer)", lineHeight:1.7, maxWidth:580 }}>
                 {prompts.length} structured prompting patterns covering the full network lifecycle — from requirements through operations.
                 Vendor-agnostic. Drop-in ready. Built for production environments.
               </p>
               <div style={{ display:"flex", gap:20, marginTop:16 }}>
                 {[[prompts.length, "Prompts"], [PHASE_ORDER.length, "Lifecycle phases"], ["100%", "Vendor agnostic"]].map(([n,l]) => (
                   <div key={l}>
-                    <div style={{ fontFamily:"'Syne',sans-serif", fontSize:20, fontWeight:700, color:"#3b82f6" }}>{n}</div>
-                    <div style={{ fontSize:10, color:"#334155", letterSpacing:"0.08em" }}>{l}</div>
+                    <div style={{ fontFamily:"'Syne',sans-serif", fontSize:20, fontWeight:700, color:"var(--accent)" }}>{n}</div>
+                    <div style={{ fontSize:10, color:"var(--text-dimmest)", letterSpacing:"0.08em" }}>{l}</div>
                   </div>
                 ))}
               </div>
@@ -799,21 +860,21 @@ Produce a RUNBOOK with these sections:
                 <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap", alignItems:"center" }}>
                   <span className="phase-dot" style={{ backgroundColor: LIFECYCLE_COLORS[selP.phase] || "#64748b" }}></span>
                   <span style={{ fontSize:11, color: LIFECYCLE_COLORS[selP.phase] || "#64748b", letterSpacing:"0.08em", fontWeight:500 }}>{selP.phase.toUpperCase()}</span>
-                  <span style={{ color:"#1e293b" }}>·</span>
-                  <span className="pill" style={{ background:"#1e293b", color:"#64748b" }}>
+                  <span style={{ color:"var(--border-main)" }}>·</span>
+                  <span className="pill" style={{ background:"var(--bg-pill)", color:"var(--text-faint)" }}>
                     {selP.difficulty === "Senior" ? "⬡" : selP.difficulty === "Mixed" ? "◈" : "◻"} {selP.difficulty}
                   </span>
                   <span className="pill" style={{ background: selP.mode === "Agentic" ? "rgba(139,92,246,0.15)" : "rgba(16,185,129,0.12)", color: selP.mode === "Agentic" ? "#8b5cf6" : "#10b981" }}>
                     {selP.mode === "Agentic" ? "⚡" : "💬"} {selP.mode}
                   </span>
-                  <span style={{ marginLeft:"auto", fontFamily:"'Syne',sans-serif", fontSize:22, color:"#1e293b", fontWeight:700 }}>#{String(selP.id).padStart(2,"0")}</span>
+                  <span style={{ marginLeft:"auto", fontFamily:"'Syne',sans-serif", fontSize:22, color:"var(--border-main)", fontWeight:700 }}>#{String(selP.id).padStart(2,"0")}</span>
                 </div>
-                <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:22, fontWeight:700, color:"#f1f5f9", marginBottom:8 }}>{selP.title}</h2>
-                <p style={{ fontSize:13, color:"#64748b", marginBottom:24, lineHeight:1.6 }}>{selP.tagline}</p>
+                <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:22, fontWeight:700, color:"var(--text-primary)", marginBottom:8 }}>{selP.title}</h2>
+                <p style={{ fontSize:13, color:"var(--text-faint)", marginBottom:24, lineHeight:1.6 }}>{selP.tagline}</p>
 
-                <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderLeft:"3px solid #3b82f6", borderRadius:"0 6px 6px 0", padding:"14px 18px", marginBottom:24 }}>
-                  <div style={{ fontSize:10, color:"#3b82f6", letterSpacing:"0.1em", marginBottom:6 }}>WHY THIS PATTERN</div>
-                  <p style={{ fontSize:12, color:"#94a3b8", lineHeight:1.7 }}>{selP.why}</p>
+                <div style={{ background:"var(--bg-sunken)", border:"1px solid var(--border-main)", borderLeft:"3px solid var(--accent)", borderRadius:"0 6px 6px 0", padding:"14px 18px", marginBottom:24 }}>
+                  <div style={{ fontSize:10, color:"var(--accent)", letterSpacing:"0.1em", marginBottom:6 }}>WHY THIS PATTERN</div>
+                  <p style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.7 }}>{selP.why}</p>
                 </div>
 
                 <div style={{ marginBottom:24 }}>
@@ -842,8 +903,8 @@ Produce a RUNBOOK with these sections:
                   </div>
                 </div>
 
-                <div style={{ background:"#0a0e1a", border:"1px solid #0f172a", borderRadius:6, padding:"14px 18px" }}>
-                  <div style={{ fontSize:10, color:"#475569", letterSpacing:"0.1em", marginBottom:8 }}>KEY DIFFERENCES</div>
+                <div style={{ background:"var(--bg-page)", border:"1px solid var(--border-deep)", borderRadius:6, padding:"14px 18px" }}>
+                  <div style={{ fontSize:10, color:"var(--text-dimmer)", letterSpacing:"0.1em", marginBottom:8 }}>KEY DIFFERENCES</div>
                   {selP.keyDiffs.map((kd,i) => (
                     <div key={i} className="kd-item" style={{ borderBottom: i===selP.keyDiffs.length-1 ? "none" : undefined }}>
                       <span className="kd-num">{String(i+1).padStart(2,"0")}</span>
@@ -862,7 +923,7 @@ Produce a RUNBOOK with these sections:
               <div style={{ display:"flex", gap:0, marginBottom:24, overflowX:"auto", paddingBottom:4 }}>
                 {PHASE_ORDER.map((ph,i) => (
                   <div key={ph} style={{ display:"flex", alignItems:"center" }}>
-                    <div style={{ padding:"5px 12px", background:"#0f172a", border:"1px solid #1e293b",
+                    <div style={{ padding:"5px 12px", background:"var(--bg-sunken)", border:"1px solid var(--border-main)",
                       borderRadius: i===0?"4px 0 0 4px":i===PHASE_ORDER.length-1?"0 4px 4px 0":0,
                       borderLeft: i>0 ? "none" : undefined,
                       fontSize:10, color: LIFECYCLE_COLORS[ph]||"#64748b",
@@ -871,7 +932,7 @@ Produce a RUNBOOK with these sections:
                       <span style={{ width:6, height:6, borderRadius:"50%", background:LIFECYCLE_COLORS[ph]||"#64748b", display:"inline-block" }}></span>
                       {ph.toUpperCase()}
                     </div>
-                    {i < PHASE_ORDER.length-1 && <div style={{ color:"#1e293b", fontSize:12 }}>›</div>}
+                    {i < PHASE_ORDER.length-1 && <div style={{ color:"var(--border-main)", fontSize:12 }}>›</div>}
                   </div>
                 ))}
               </div>
@@ -889,30 +950,30 @@ Produce a RUNBOOK with these sections:
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:12 }}>
                 {filtered.map(p => (
                   <div key={p.id} className="card-hover" onClick={() => setSelected(p.id)}
-                    style={{ background:"#0d1421", border:"1px solid #1e293b", borderRadius:8, padding:"18px 20px",
+                    style={{ background:"var(--bg-card)", border:"1px solid var(--border-main)", borderRadius:8, padding:"18px 20px",
                       borderTop:`2px solid ${LIFECYCLE_COLORS[p.phase]||"#334155"}` }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
                       <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                        <span className="pill" style={{ background:"#0f172a", color:"#475569" }}>
+                        <span className="pill" style={{ background:"var(--bg-pill)", color:"var(--text-dimmer)" }}>
                           {p.difficulty==="Senior"?"⬡":p.difficulty==="Mixed"?"◈":"◻"} {p.difficulty}
                         </span>
                         <span className="pill" style={{ background:p.mode==="Agentic"?"rgba(139,92,246,0.12)":"rgba(16,185,129,0.1)", color:p.mode==="Agentic"?"#8b5cf6":"#10b981" }}>
                           {p.mode==="Agentic"?"⚡":"💬"} {p.mode}
                         </span>
                       </div>
-                      <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, color:"#1e293b", fontWeight:700 }}>#{String(p.id).padStart(2,"0")}</span>
+                      <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, color:"var(--border-main)", fontWeight:700 }}>#{String(p.id).padStart(2,"0")}</span>
                     </div>
                     <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
                       <span className="phase-dot" style={{ backgroundColor:LIFECYCLE_COLORS[p.phase]||"#64748b" }}></span>
                       <span style={{ fontSize:10, color:LIFECYCLE_COLORS[p.phase]||"#64748b", letterSpacing:"0.07em" }}>{p.phase.toUpperCase()}</span>
                     </div>
-                    <h3 style={{ fontFamily:"'Syne',sans-serif", fontSize:14, fontWeight:700, color:"#e2e8f0", marginBottom:6, lineHeight:1.3 }}>{p.title}</h3>
-                    <p style={{ fontSize:11, color:"#475569", lineHeight:1.6 }}>{p.tagline}</p>
-                    <div style={{ marginTop:14, paddingTop:12, borderTop:"1px solid #0f172a", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                      <span style={{ fontSize:10, color:"#334155" }}>View pattern →</span>
+                    <h3 style={{ fontFamily:"'Syne',sans-serif", fontSize:14, fontWeight:700, color:"var(--text-body)", marginBottom:6, lineHeight:1.3 }}>{p.title}</h3>
+                    <p style={{ fontSize:11, color:"var(--text-dimmer)", lineHeight:1.6 }}>{p.tagline}</p>
+                    <div style={{ marginTop:14, paddingTop:12, borderTop:"1px solid var(--border-deep)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <span style={{ fontSize:10, color:"var(--text-dimmest)" }}>View pattern →</span>
                       <div style={{ display:"flex", gap:3 }}>
                         {[...Array(3)].map((_,i) => (
-                          <div key={i} style={{ width:4, height:4, borderRadius:"50%", background:i===0?LIFECYCLE_COLORS[p.phase]:"#1e293b" }}></div>
+                          <div key={i} style={{ width:4, height:4, borderRadius:"50%", background:i===0?LIFECYCLE_COLORS[p.phase]:"var(--border-main)" }}></div>
                         ))}
                       </div>
                     </div>
@@ -921,14 +982,14 @@ Produce a RUNBOOK with these sections:
               </div>
 
               {/* Footer */}
-              <div style={{ marginTop:40, padding:"16px 20px", background:"#0d1421", border:"1px solid #1e293b", borderRadius:6, display:"flex", gap:12, alignItems:"flex-start" }}>
-                <span style={{ color:"#3b82f6", fontSize:16, flexShrink:0 }}>ℹ</span>
-                <div style={{ fontSize:11, color:"#64748b", lineHeight:1.7 }}>
-                  <strong style={{ color:"#94a3b8" }}>Usage: </strong>
+              <div style={{ marginTop:40, padding:"16px 20px", background:"var(--bg-footer)", border:"1px solid var(--border-main)", borderRadius:6, display:"flex", gap:12, alignItems:"flex-start" }}>
+                <span style={{ color:"var(--accent)", fontSize:16, flexShrink:0 }}>ℹ</span>
+                <div style={{ fontSize:11, color:"var(--text-faint)", lineHeight:1.7 }}>
+                  <strong style={{ color:"var(--text-muted)" }}>Usage: </strong>
                   Replace all <span style={{ color:"#f59e0b" }}>[BRACKETED PLACEHOLDERS]</span> with your actual values before submitting.
                   Prompts marked <span style={{ color:"#8b5cf6" }}>⚡ Agentic</span> assume tool access (show command execution, config retrieval).
                   All prompts are vendor-agnostic — append your platform name for vendor-specific command syntax.
-                  · <strong style={{ color:"#94a3b8" }}>To add prompts:</strong> open <span style={{ color:"#f59e0b" }}>index.html</span> and follow the comments in the PROMPTS DATA section.
+                  · <strong style={{ color:"var(--text-muted)" }}>To add prompts:</strong> open <span style={{ color:"#f59e0b" }}>index.html</span> and follow the comments in the PROMPTS DATA section.
                 </div>
               </div>
             </div>

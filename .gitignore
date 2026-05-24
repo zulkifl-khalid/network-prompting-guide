@@ -9,5 +9,6 @@ desktop.ini
 *.swp
 *.swo
 *~
+*.bak
 
 # Nothing else to ignore — this is a single-file project

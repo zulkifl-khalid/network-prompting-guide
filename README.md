@@ -46,7 +46,7 @@ You do not need to know React or JavaScript — just edit the data.
 
 1. Open `index.html` in any text editor (VS Code, Notepad++, vim, etc.)
 
-2. Find this comment (around line 120):
+2. Find this comment (search for it with Ctrl+F):
    ```
    /* ── ADD NEW PROMPTS BELOW THIS LINE ─────────── */
    ```
@@ -126,11 +126,7 @@ at the top of the `<script>` section in `index.html`.
 
 1. Add your prompt following the template above
 2. Test it: open `index.html` in a browser and verify the card appears correctly
-3. Open a Pull Request with:
-   - The updated `index.html`
-   - A short description in the PR body of what the prompt solves and which  
-     network domain it targets
-   - The AI tool you tested it with
+3. Send the updated `index.html` to the repo owner to merge.
 
 Please keep prompts **vendor-agnostic** unless the prompt is explicitly  
 documenting a vendor-specific technique (in which case, add the vendor name  
